@@ -288,7 +288,7 @@ function toggleUIConnected(connected) {
  * @name parseSensorData
  * Parse the data from advertising data string.
  * @param  {string} input advertising data string.
- * @returns {object ={sensorid:{string}, p:{string}, t:{string}, h:{string}, als:{string}, pm1:{string}, pm25:{string}, pm10:{string}}} 
+ * @returns {object ={sensorid:{string}, p:{int}, t:{int}, h:{int}, als:{int}, pm1:{int}, pm25:{int}, pm10:{int}}} 
  */
 function parseSensorData(input) {
   let counter = 13;
