@@ -138,10 +138,10 @@ function clickScan() {
 
 /**
  * @name clickGetData
- * Click handler for the Scan button.
- * Checks if a scan is already running by checking the boolean isScanning.
- * If isScanning = true: Stops scanning and goes back to peripheral mode, changes the button text and shows the beacon buttons. Finally sets isScanning = false.
- * If isScanning = false: Goes into Central mode and starts scanning for ble devices. Also changes button text and hides the beacon buttons. Finally sets isScanning = true.
+ * Click handler for the 'Get Data' button.
+ * Checks if a getData scan is already running by checking the boolean isGettingData.
+ * If isGettingData = true: Stops scanning and goes back to peripheral mode, changes the button text and shows the scan button. Finally sets isGettingData = false.
+ * If isGettingData = false: Goes into Central mode and starts scanning for ble devices data. Also changes button text and hides the scan button. Finally sets isGettingData = true.
  */
 function clickGetData() {
   console.log("GET DATA BUTTON PRESSED");
@@ -157,7 +157,7 @@ function clickGetData() {
   }
   writeCmd("AT+CENTRAL"); // Set the dongle in Central mode needed for scanning.
   setTimeout(() => {
-   writeCmd("AT+FINDSCANDATA=FF5B07");
+   writeCmd("AT+FINDSCANDATA=FF5B07"); // Will just scan for adv data that contains 'FF5B07' which is the tag for Manufaturing Specific Data (FF) and our Company ID (5B07).
   }, 500); // Waiting half a bit to make sure each command will get through separately.
 
   butGetData.textContent = "Stop Getting Data...";
@@ -186,8 +186,6 @@ async function readLoop() {
         log.classList.toggle("d-none", false);
       }
       let lineValueArray = value.split(" ");
-      console.log("Line 2" + lineValueArray[2]);
-      console.log("Line 6" + lineValueArray[6]);
       if (lineValueArray[6] === "(HibouAIR)") {
         if(lineValueArray[2]) {
           hibouDevices.push("["+lineValueArray[2].replace("[1]", "") +"]");
@@ -196,7 +194,6 @@ async function readLoop() {
         log.textContent = "\n" + "hibouDevices found: " + hibouDevices.length + "\n";
       }
     }
-    //log.textContent = "\n" + "hibou sesnor data: " + lineValueArray[1] + "\n";
     if (value && isGettingData) {
       if(value === "SCAN COMPLETE") {
         isGettingData = false;
@@ -206,15 +203,12 @@ async function readLoop() {
         log.classList.toggle("d-none", false);
       }
       let lineValueArray = value.split(" ");
-      console.log("Line 0= " + lineValueArray[0]);
-      console.log("Line 1= " + lineValueArray[1]); // data
-      console.log("Line 3= " + lineValueArray[3]); // type of data
-      if(!rightDevice) {
+      if(!rightDevice) { // The advdata is spread on two lines, the first identifies it,
         if (lineValueArray[0] === hibouDevices[5] && lineValueArray[3] === "[ADV]:") {
           rightDevice = true;
           console.log("CONSOLE.LOG= "+value);
         }
-      } else {
+      } else if (rightDevice) { // Second line contains the actual advdata string we need to parse
         let scannedSensorData = parseSensorData(lineValueArray[1]);
         log.textContent = "\n" + "SensorData= " + JSON.stringify(scannedSensorData) + "\n";
 
@@ -292,8 +286,9 @@ function toggleUIConnected(connected) {
 
 /**
  * @name parseSensorData
- * Changes the text on butConnect depending on the action it actually will preform in the current state.
- * @param  {boolean} connected true if connected, false if disconnected.
+ * Parse the data from advertising data string.
+ * @param  {string} input advertising data string.
+ * @returns {object ={sensorid:{string}, p:{string}, t:{string}, h:{string}, als:{string}, pm1:{string}, pm25:{string}, pm10:{string}}} 
  */
 function parseSensorData(input) {
   let counter = 13;
