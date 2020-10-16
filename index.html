@@ -22,7 +22,7 @@
       crossorigin="anonymous"
     />
 
-    <script src="script.js" defer></script>
+    
   </head>
   <body>
     <div class="container">
@@ -121,19 +121,35 @@
             Connect
           </button>
           <br /><br />
-          <button id="butScan" type="button" disabled class="btn btn-primary">
-            Scan BLE Devices
-          </button>
-          <button
-            id="butGetData"
-            type="button"
-            disabled
-            class="btn btn-primary"
-          >
-            Get Data
-          </button>
+          <div class="row">
+            <div class="col-md-3"><button id="butScan" type="button" disabled class="btn btn-primary">
+              Scan BLE Devices
+            </button></div>
+            <div class="col-md-3">
+              <select class="devices form-control" id="devices"  onchange="getSelectedDevice(this)">
+                <option value="">Select a Device</option>
+              </select></div>
+            <div class="col-md-3"><button
+              id="butGetData"
+              type="button"
+              disabled
+              class="btn btn-primary"
+            >
+              Get Data
+            </button></div>
+          </div>
+          
+
+          <br /><br />
+          
 
           <pre id="log" class="mt-5 d-none"></pre>
+
+          <div style="background: white;">
+            <canvas id="myChart"></canvas>
+          </div>
+
+
         </main>
       </div>
     </div>
@@ -162,5 +178,13 @@
       integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
       crossorigin="anonymous"
     ></script>
+    <script src="script.js" defer></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/min/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@1.8.0"></script>
+    
   </body>
 </html>

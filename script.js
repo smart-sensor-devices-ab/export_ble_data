@@ -10,7 +10,17 @@ let isScanning = false;
 let isGettingData = false;
 let hibouDevices = [];
 let rightDevice = false;
-
+let scannedSensorData = []
+var chartColors = {
+	red: 'rgb(255, 99, 132)',
+	orange: 'rgb(255, 159, 64)',
+	yellow: 'rgb(255, 205, 86)',
+	green: 'rgb(75, 192, 192)',
+	blue: 'rgb(54, 162, 235)',
+	purple: 'rgb(153, 102, 255)',
+	grey: 'rgb(96, 125, 139)'
+};
+var color = Chart.helpers.color;
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
 const butScan = document.getElementById("butScan");
@@ -23,6 +33,138 @@ document.addEventListener("DOMContentLoaded", () => {
   const notSupported = document.getElementById("notSupported");
   notSupported.classList.toggle("hidden", "serial" in navigator);
 });
+function randomScalingFactor() {
+	return (Math.random() > 0.5 ? 1.0 : -1.0) * Math.round(Math.random() * 100);
+}
+function onRefresh(chart) {
+    chart.config.data.datasets[0].data.push({
+			x: Date.now(),
+			y: scannedSensorData.p
+        });
+    chart.config.data.datasets[1].data.push({
+			x: Date.now(),
+			y: scannedSensorData.t
+        });
+        chart.config.data.datasets[2].data.push({
+			x: Date.now(),
+			y: scannedSensorData.als
+        }); 
+        chart.config.data.datasets[3].data.push({
+          x: Date.now(),
+          y: scannedSensorData.voc
+            }); 
+        chart.config.data.datasets[4].data.push({
+          x: Date.now(),
+          y: scannedSensorData.h
+            }); 
+            chart.config.data.datasets[5].data.push({
+              x: Date.now(),
+              y: scannedSensorData.pm25
+                });        
+}
+var config = {
+	type: 'line',
+	data: {
+		datasets: [ {
+			label: 'Pressure',
+			backgroundColor: color(chartColors.red).alpha(0.5).rgbString(),
+			borderColor: chartColors.red,
+			fill: false,
+			cubicInterpolationMode: 'monotone',
+			data: []
+        },
+        {
+			label: 'Temperature',
+			backgroundColor: color(chartColors.blue).alpha(0.5).rgbString(),
+			borderColor: chartColors.blue,
+			fill: false,
+			cubicInterpolationMode: 'monotone',
+			data: []
+		},
+        {
+			label: 'Light',
+			backgroundColor: color(chartColors.orange).alpha(0.5).rgbString(),
+			borderColor: chartColors.orange,
+			fill: false,
+			cubicInterpolationMode: 'monotone',
+			data: []
+    },
+    {
+			label: 'VOC',
+			backgroundColor: color(chartColors.grey).alpha(0.5).rgbString(),
+			borderColor: chartColors.grey,
+			fill: false,
+			cubicInterpolationMode: 'monotone',
+			data: []
+		},
+    {
+  label: 'Humidity',
+  backgroundColor: color(chartColors.green).alpha(0.5).rgbString(),
+  borderColor: chartColors.green,
+  fill: false,
+  cubicInterpolationMode: 'monotone',
+  data: []
+},
+{
+label: 'PM 2.5',
+backgroundColor: color(chartColors.purple).alpha(0.5).rgbString(),
+borderColor: chartColors.purple,
+fill: false,
+cubicInterpolationMode: 'monotone',
+data: []
+}]
+	},
+	options: {
+		title: {
+			display: true,
+			text: 'Hibou - Realtime data'
+    },
+
+		scales: {
+			xAxes: [{
+				type: 'realtime',
+				realtime: {
+					duration: 20000,
+					refresh: 2000,
+          delay: 2000,
+          ttl:1000000,
+					onRefresh: onRefresh
+        },
+        gridLines: {
+          display:false
+      }
+			}],
+			yAxes: [{
+				scaleLabel: {
+					display: true,
+					labelString: 'value'
+        }
+			}]
+    },
+    plugins: {
+      zoom: {
+            // Container for zoom options
+          zoom: {
+              // Boolean to enable zooming
+              enabled: true,
+
+              // Zooming directions. Remove the appropriate direction to disable 
+              // Eg. 'y' would only allow zooming in the y direction
+              mode: 'x',
+          }
+      }
+  },
+		tooltips: {
+			mode: 'nearest',
+			intersect: false
+		},
+		hover: {
+			mode: 'nearest',
+			intersect: false
+		}
+	}
+};
+var colorNames = Object.keys(chartColors);
 
 /**
  * @name connect
@@ -33,7 +175,7 @@ async function connect() {
   // - Request a port and open a connection.
   port = await navigator.serial.requestPort();
   // - Wait for the port to open.
-  await port.open({ baudrate: 9600 });
+  await port.open({ baudRate: 9600 });
 
   const encoder = new TextEncoderStream();
   outputDone = encoder.readable.pipeTo(port.writable);
@@ -103,6 +245,11 @@ async function clickConnect() {
   toggleUIConnected(true);
 }
 
+function getSelectedDevice(selectObject) {
+  var selectedDevice = selectObject.value;  
+  localStorage.setItem("selectedDevice", selectedDevice);
+}
+
 /**
  * @name clickScan
  * Click handler for the Scan button.
@@ -151,6 +298,9 @@ function clickGetData() {
       writeCmd("AT+PERIPHERAL"); // Set the dongle in Peripheral mode needed for advertising.
     }, 500); // Waiting half a bit to make sure each command will get through separately.
     isGettingData = false;
+    if(window.myChart){
+      window.myChart.destroy();
+    }
     butScan.removeAttribute("disabled");
     butGetData.textContent = "Get Data";
     return;
@@ -165,6 +315,9 @@ function clickGetData() {
   log.classList.toggle("d-none", false);
 
   isGettingData = true;
+    var ctx = document.getElementById('myChart').getContext('2d');
+  window.myChart = new Chart(ctx, config);
+  
 }
 
 /**
@@ -193,6 +346,16 @@ async function readLoop() {
         }
         log.textContent = "\n" + "hibouDevices found: " + hibouDevices.length + "\n";
       }
+      if(value === "SCAN COMPLETE") {
+        var select = document.getElementById("devices");
+        hibouDevices.map(function(item){
+          var option = document.createElement("option");
+          option.value = item;
+          option.text  = item;
+          select.appendChild(option)
+        });
+      }
+
     }
     if (value && isGettingData) {
       if(value === "SCAN COMPLETE") {
@@ -202,17 +365,18 @@ async function readLoop() {
         butScan.removeAttribute("disabled");
         log.classList.toggle("d-none", false);
       }
+      
       let lineValueArray = value.split(" ");
       if(!rightDevice) { // The advdata is spread on two lines, the first identifies it,
-        if (lineValueArray[0] === hibouDevices[5] && lineValueArray[3] === "[ADV]:") {
+        if (lineValueArray[0] ===   localStorage.getItem("selectedDevice") && lineValueArray[3] === "[ADV]:") {
           rightDevice = true;
-          console.log("CONSOLE.LOG= "+value);
+          //console.log("CONSOLE.LOG= "+value);
         }
       } else if (rightDevice) { // Second line contains the actual advdata string we need to parse
-        let scannedSensorData = parseSensorData(lineValueArray[1]);
+        scannedSensorData = parseSensorData(lineValueArray[1]);
         log.textContent = "\n" + "SensorData= " + JSON.stringify(scannedSensorData) + "\n";
-
-        console.log("CONSOLE.LOG= "+value);
+//console.log(scannedSensorData.p)
+        //console.log("CONSOLE.LOG= "+value);
         rightDevice = false;
       }
 
@@ -224,7 +388,6 @@ async function readLoop() {
     }
   }
 }
-
 /**
  * @name writeCmd
  * Gets a writer from the output stream and send the command to the Smart USB Dongle 2.0.
@@ -327,6 +490,14 @@ function parseSensorData(input) {
           input[counter + 20],
         16
       ) / 10,
+      voc:
+      parseInt(
+        input[counter + 25] +
+          input[counter + 26] +
+          input[counter + 23] +
+          input[counter + 24],
+        16
+      ) / 10,
     als: parseInt(
       input[counter + 9] +
         input[counter + 10] +
@@ -360,3 +531,9 @@ function parseSensorData(input) {
       ) / 10}
   return sensorData
 }
+// readLoop()
+//   .then((data) => { console.log(data)})
+window.onload = function() {
+	//var ctx = document.getElementById('myChart').getContext('2d');
+	//window.myChart = new Chart(ctx, config);
+};
