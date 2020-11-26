@@ -14,6 +14,12 @@
         window.location.href = "https:" + window.location.href.substring(5);
       }
     </script>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.datatables.net/1.10.22/css/jquery.dataTables.css"
+    />
+
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
@@ -21,8 +27,6 @@
       integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z"
       crossorigin="anonymous"
     />
-
-    
   </head>
   <body>
     <div class="container">
@@ -122,34 +126,43 @@
           </button>
           <br /><br />
           <div class="row">
-            <div class="col-md-3"><button id="butScan" type="button" disabled class="btn btn-primary">
-              Scan BLE Devices
-            </button></div>
             <div class="col-md-3">
-              <select class="devices form-control" id="devices"  onchange="getSelectedDevice(this)">
+              <button
+                id="butScan"
+                type="button"
+                disabled
+                class="btn btn-primary"
+              >
+                Scan BLE Devices
+              </button>
+            </div>
+            <div class="col-md-3">
+              <select
+                class="devices form-control"
+                id="devices"
+                onchange="getSelectedDevice(this)"
+              >
                 <option value="">Select a Device</option>
-              </select></div>
-            <div class="col-md-3"><button
-              id="butGetData"
-              type="button"
-              disabled
-              class="btn btn-primary"
-            >
-              Get Data
-            </button></div>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <button
+                id="butGetData"
+                type="button"
+                disabled
+                class="btn btn-primary"
+              >
+                Get Data
+              </button>
+            </div>
           </div>
-          
 
           <br /><br />
-          
 
           <pre id="log" class="mt-5 d-none"></pre>
+          <div id="dataIntoTable" class="mt-5"></div>
 
-          <div style="background: white;">
-            <canvas id="myChart"></canvas>
-          </div>
-
-
+          <div style="background: white"></div>
         </main>
       </div>
     </div>
@@ -178,13 +191,23 @@
       integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV"
       crossorigin="anonymous"
     ></script>
+
+    <script
+      type="text/javascript"
+      charset="utf8"
+      src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      charset="utf8"
+      src="https://cdn.datatables.net/buttons/1.6.4/js/dataTables.buttons.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      charset="utf8"
+      src="https://cdn.datatables.net/buttons/1.6.4/js/buttons.html5.min.js"
+    ></script>
+
     <script src="script.js" defer></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/min/moment.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@0.7.7"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@1.8.0"></script>
-    
   </body>
 </html>

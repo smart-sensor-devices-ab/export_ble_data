@@ -39,3 +39,7 @@ pre {
   padding: 20px 0;
   min-height: 500px;
 }
+#dataIntoTable {
+  background: #ffffff;
+  padding: 10px;
+}

@@ -11,20 +11,12 @@ let isGettingData = false;
 let hibouDevices = [];
 let rightDevice = false;
 let scannedSensorData = []
-var chartColors = {
-	red: 'rgb(255, 99, 132)',
-	orange: 'rgb(255, 159, 64)',
-	yellow: 'rgb(255, 205, 86)',
-	green: 'rgb(75, 192, 192)',
-	blue: 'rgb(54, 162, 235)',
-	purple: 'rgb(153, 102, 255)',
-	grey: 'rgb(96, 125, 139)'
-};
-var color = Chart.helpers.color;
+let outPutData =[]
 const log = document.getElementById("log");
 const butConnect = document.getElementById("butConnect");
 const butScan = document.getElementById("butScan");
 const butGetData = document.getElementById("butGetData");
+const outputTable = document.getElementById('dataIntoTable')
 
 document.addEventListener("DOMContentLoaded", () => {
   butScan.addEventListener("click", clickScan);
@@ -33,138 +25,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const notSupported = document.getElementById("notSupported");
   notSupported.classList.toggle("hidden", "serial" in navigator);
 });
-function randomScalingFactor() {
-	return (Math.random() > 0.5 ? 1.0 : -1.0) * Math.round(Math.random() * 100);
-}
-function onRefresh(chart) {
-    chart.config.data.datasets[0].data.push({
-			x: Date.now(),
-			y: scannedSensorData.p
-        });
-    chart.config.data.datasets[1].data.push({
-			x: Date.now(),
-			y: scannedSensorData.t
-        });
-        chart.config.data.datasets[2].data.push({
-			x: Date.now(),
-			y: scannedSensorData.als
-        }); 
-        chart.config.data.datasets[3].data.push({
-          x: Date.now(),
-          y: scannedSensorData.voc
-            }); 
-        chart.config.data.datasets[4].data.push({
-          x: Date.now(),
-          y: scannedSensorData.h
-            }); 
-            chart.config.data.datasets[5].data.push({
-              x: Date.now(),
-              y: scannedSensorData.pm25
-                });        
-}
-var config = {
-	type: 'line',
-	data: {
-		datasets: [ {
-			label: 'Pressure',
-			backgroundColor: color(chartColors.red).alpha(0.5).rgbString(),
-			borderColor: chartColors.red,
-			fill: false,
-			cubicInterpolationMode: 'monotone',
-			data: []
-        },
-        {
-			label: 'Temperature',
-			backgroundColor: color(chartColors.blue).alpha(0.5).rgbString(),
-			borderColor: chartColors.blue,
-			fill: false,
-			cubicInterpolationMode: 'monotone',
-			data: []
-		},
-        {
-			label: 'Light',
-			backgroundColor: color(chartColors.orange).alpha(0.5).rgbString(),
-			borderColor: chartColors.orange,
-			fill: false,
-			cubicInterpolationMode: 'monotone',
-			data: []
-    },
-    {
-			label: 'VOC',
-			backgroundColor: color(chartColors.grey).alpha(0.5).rgbString(),
-			borderColor: chartColors.grey,
-			fill: false,
-			cubicInterpolationMode: 'monotone',
-			data: []
-		},
-    {
-  label: 'Humidity',
-  backgroundColor: color(chartColors.green).alpha(0.5).rgbString(),
-  borderColor: chartColors.green,
-  fill: false,
-  cubicInterpolationMode: 'monotone',
-  data: []
-},
-{
-label: 'PM 2.5',
-backgroundColor: color(chartColors.purple).alpha(0.5).rgbString(),
-borderColor: chartColors.purple,
-fill: false,
-cubicInterpolationMode: 'monotone',
-data: []
-}]
-	},
-	options: {
-		title: {
-			display: true,
-			text: 'Hibou - Realtime data'
-    },
 
-		scales: {
-			xAxes: [{
-				type: 'realtime',
-				realtime: {
-					duration: 20000,
-					refresh: 2000,
-          delay: 2000,
-          ttl:1000000,
-					onRefresh: onRefresh
-        },
-        gridLines: {
-          display:false
-      }
-			}],
-			yAxes: [{
-				scaleLabel: {
-					display: true,
-					labelString: 'value'
-        }
-			}]
-    },
-    plugins: {
-      zoom: {
-            // Container for zoom options
-          zoom: {
-              // Boolean to enable zooming
-              enabled: true,
 
-              // Zooming directions. Remove the appropriate direction to disable 
-              // Eg. 'y' would only allow zooming in the y direction
-              mode: 'x',
-          }
-      }
-  },
-		tooltips: {
-			mode: 'nearest',
-			intersect: false
-		},
-		hover: {
-			mode: 'nearest',
-			intersect: false
-		}
-	}
-};
-var colorNames = Object.keys(chartColors);
 
 /**
  * @name connect
@@ -273,7 +135,7 @@ function clickScan() {
   hibouDevices = [];
   writeCmd("AT+CENTRAL"); // Set the dongle in Central mode needed for scanning.
   setTimeout(() => {
-    writeCmd("AT+GAPSCAN=3");
+    writeCmd("AT+GAPSCAN=2");
   }, 500); // Waiting half a bit to make sure each command will get through separately.
 
   butScan.textContent = "Stop Scanning...";
@@ -298,9 +160,14 @@ function clickGetData() {
       writeCmd("AT+PERIPHERAL"); // Set the dongle in Peripheral mode needed for advertising.
     }, 500); // Waiting half a bit to make sure each command will get through separately.
     isGettingData = false;
-    if(window.myChart){
-      window.myChart.destroy();
-    }
+    outputTable.innerHTML = json2Table(outPutData)
+    $("#sendorTable").DataTable( {
+      dom: 'Bfrtip',
+      buttons: [
+          'copyHtml5',
+          'csvHtml5'
+      ]
+  } );
     butScan.removeAttribute("disabled");
     butGetData.textContent = "Get Data";
     return;
@@ -315,17 +182,19 @@ function clickGetData() {
   log.classList.toggle("d-none", false);
 
   isGettingData = true;
-    var ctx = document.getElementById('myChart').getContext('2d');
-  window.myChart = new Chart(ctx, config);
+
   
 }
+
 
 /**
  * @name readLoop
  * Reads data from the input stream and displays it on screen.
  */
 async function readLoop() {
+  let i=0;
   while (true) {
+    i++;
     const { value, done } = await reader.read();
     if (value && (!isScanning && !isGettingData)) {
       log.textContent += value + "\n";
@@ -364,21 +233,28 @@ async function readLoop() {
         log.textContent += "\n" +"Scan Done" + "\n";
         butScan.removeAttribute("disabled");
         log.classList.toggle("d-none", false);
+        
       }
-      
       let lineValueArray = value.split(" ");
-      if(!rightDevice) { // The advdata is spread on two lines, the first identifies it,
+      //if(!rightDevice) { // The advdata is spread on two lines, the first identifies it,
         if (lineValueArray[0] ===   localStorage.getItem("selectedDevice") && lineValueArray[3] === "[ADV]:") {
-          rightDevice = true;
+          //rightDevice = true;
           //console.log("CONSOLE.LOG= "+value);
-        }
-      } else if (rightDevice) { // Second line contains the actual advdata string we need to parse
-        scannedSensorData = parseSensorData(lineValueArray[1]);
+          scannedSensorData = parseSensorData(lineValueArray[4]);
+          if((i%20) === 0) {
+            outPutData.push(scannedSensorData)
+          }
         log.textContent = "\n" + "SensorData= " + JSON.stringify(scannedSensorData) + "\n";
+        }
+      //} else if (rightDevice) { // Second line contains the actual advdata string we need to parse
+       // console.log(lineValueArray)
+
+        //scannedSensorData = parseSensorData(lineValueArray[4]);
+        //log.textContent = "\n" + "SensorData= " + JSON.stringify(scannedSensorData) + "\n";
 //console.log(scannedSensorData.p)
         //console.log("CONSOLE.LOG= "+value);
-        rightDevice = false;
-      }
+        //rightDevice = false;
+      //}
 
     }
     if (done) {
@@ -388,6 +264,7 @@ async function readLoop() {
     }
   }
 }
+
 /**
  * @name writeCmd
  * Gets a writer from the output stream and send the command to the Smart USB Dongle 2.0.
@@ -531,9 +408,28 @@ function parseSensorData(input) {
       ) / 10}
   return sensorData
 }
-// readLoop()
-//   .then((data) => { console.log(data)})
-window.onload = function() {
-	//var ctx = document.getElementById('myChart').getContext('2d');
-	//window.myChart = new Chart(ctx, config);
-};
+
+function json2Table(json) {
+  let cols = Object.keys(json[0]);
+  //Map over columns, make headers,join into string
+  let headerRow = cols
+    .map(col => `<th>${col}</th>`)
+    .join("");
+  let rows = json
+    .map(row => {
+      let tds = cols.map(col => `<td>${row[col]}</td>`).join("");
+      return `<tr>${tds}</tr>`;
+    })
+    .join("");
+  const table = `
+	<table id='sendorTable' class='table  table-striped'>
+		<thead>
+			<tr>${headerRow}</tr>
+		<thead>
+		<tbody>
+			${rows}
+		<tbody>
+	<table>`;
+  return table;
+}
+
